@@ -20,21 +20,17 @@ message Transaction {
     uint64 quota = 4;
     uint64 valid_until_block = 5 [(builder.field_value_func) = "check_valid_until_block"];
     bytes data = 6;
-    // length is 32 bytes.
     bytes value = 7 [(builder.field_length) = 32];
-    // length is 32 bytes.
     bytes chain_id = 8 [(builder.field_length) = 32, (builder.field_value_func) = "check_chain_id"];
 }
 
 message Witness {
     bytes signature = 1 [(builder.field_length_func) = "kms_signature_length"];
-    // add to support multi-address, or we don't know which address algorithm to use
     bytes sender = 2 [(builder.field_length_func) = "kms_address_length"];
 }
 
 message UnverifiedTransaction {
     Transaction transaction = 1;
-    // add to support multi-hash, or we don't know which hash algorithm to use
     bytes transaction_hash = 2 [(builder.field_length_func) = "kms_hash_length"];
     Witness witness = 3;
 }
@@ -48,7 +44,6 @@ message UtxoTransaction {
 
 message UnverifiedUtxoTransaction {
     UtxoTransaction transaction = 1;
-    // add to support multi-hash, or we don't know which hash algorithm to use
     bytes transaction_hash = 2 [(builder.field_length_func) = "kms_hash_length"];
     repeated Witness witnesses = 3;
 }

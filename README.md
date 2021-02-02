@@ -1,17 +1,18 @@
 # controller builder
-根据用户自定义的`blockchain.proto`文件，生成controller需要的代码。
+`builder.proto`中定义了一些扩展选项。
 
-本项目作为一个`protoc`插件运行。
+用户可以在`blockchain.proto`中自定义交易，区块等数据结构，并使用扩展选项来标注各个字段的属性。
 
-`protoc`会先将`proto`文件解析，然后传递`descriptor`结构给插件继续进行处理。
+然后使用本工具生成`controller`需要的代码。
 
-这个`descriptor`结构定义在[descriptor.proto](https://github.com/protocolbuffers/protobuf/blob/master/src/google/protobuf/descriptor.proto)。
-
-这里使用[protobuf](https://crates.io/crates/protobuf)中已经实现好的解析函数，来解析其中的扩展信息，并生成相应的代码。
+### 依赖
+事先在系统中安装`protobuf`编译器。
 
 ### 命令
 ```
-protoc --proto_path=./protos --plugin=protoc-gen-controller=./target/debug/controller_builder --controller_out=controller blockchain.proto > output 2>&1
+protoc --proto_path=./protos --include_imports --include_source_info -o ./descriptor.bin blockchain.proto
+cargo build
+./target/debug/controller_builder ./descriptor.bin > output
 ```
 
 ### 扩展选项

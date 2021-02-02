@@ -1,6 +1,7 @@
-use protobuf::{Message, compiler_plugin, UnknownValues};
-use protobuf::descriptor::{FieldDescriptorProto, FieldDescriptorProto_Type};
+use protobuf::{Message, UnknownValues};
+use protobuf::descriptor::{FieldDescriptorProto, FieldDescriptorProto_Type, FileDescriptorSet};
 use protobuf::types::{ProtobufTypeDouble, ProtobufType, ProtobufTypeFloat, ProtobufTypeInt64, ProtobufTypeUint64, ProtobufTypeInt32, ProtobufTypeFixed64, ProtobufTypeFixed32, ProtobufTypeBool, ProtobufTypeString, ProtobufTypeBytes, ProtobufTypeUint32, ProtobufTypeSfixed32, ProtobufTypeSfixed64, ProtobufTypeSint32, ProtobufTypeSint64};
+use std::fs;
 
 fn parse_extension(extension_info: &[FieldDescriptorProto], field_number: u32, unknown_values: &UnknownValues) -> Option<(String, String, String)> {
     for ext in extension_info {
@@ -130,47 +131,56 @@ fn parse_extension(extension_info: &[FieldDescriptorProto], field_number: u32, u
 
 
 fn main() {
-    compiler_plugin::plugin_main(|r, s| {
-        eprintln!("s: {:#?}", s);
-        for d in r {
-            if s.contains(&d.get_name().to_owned()) {
-                eprintln!("*******proto info*******");
-                eprintln!("name: {}", d.get_name());
-                // print extension info
-                let extension_info = d.get_extension();
-                eprintln!("*****ext info*****");
-                eprintln!("ext info:\n{:#?}", extension_info);
-                // print message info
-                eprintln!("*****message info*****");
-                for m in d.get_message_type() {
-                    eprintln!("message: {}", m.get_name());
-                    if m.has_options() {
-                        let opt = m.get_options();
-                        let unknown_fields = opt.get_unknown_fields();
-                        for (field_number, values) in unknown_fields {
-                            if let Some((name, t, v)) = parse_extension(extension_info, field_number, values) {
-                                eprintln!("*option*: {} {} = {}", t, name, v);
-                            }
+    let mut args = std::env::args();
+    let descriptor_file = args.nth(1).expect("Need one argument: descriptor file name!");
+    println!("descriptor_file: {}", descriptor_file);
+    let descriptor_bytes = fs::read(descriptor_file).expect("Can't read descriptor file!");
+    let file_descriptor_set = FileDescriptorSet::parse_from_bytes(&descriptor_bytes).expect("Parse descriptor file failed!");
+    let file_descriptor_proto_array = file_descriptor_set.get_file();
+
+    let mut extension_info = Vec::new();
+
+    for d in file_descriptor_proto_array {
+        if d.get_name() == "builder.proto" {
+            // print extension info
+            let builder_extension_info = d.get_extension();
+            extension_info.append(&mut builder_extension_info.to_owned());
+            println!("*****ext info*****");
+            println!("ext info:\n{:#?}", extension_info);
+        }
+    }
+
+    for d in file_descriptor_proto_array {
+        if d.get_name() == "blockchain.proto" {
+            println!("*******proto info*******");
+            println!("name: {}", d.get_name());
+            // print message info
+            println!("*****message info*****");
+            for m in d.get_message_type() {
+                println!("message: {}", m.get_name());
+                if m.has_options() {
+                    let opt = m.get_options();
+                    let unknown_fields = opt.get_unknown_fields();
+                    for (field_number, values) in unknown_fields {
+                        if let Some((name, t, v)) = parse_extension(&extension_info, field_number, values) {
+                            println!("*option*: {} {} = {}", t, name, v);
                         }
                     }
-                    eprintln!("***field info***");
-                    for f in m.get_field() {
-                        eprintln!("field info:\n{:#?}", f);
-                        if f.has_options() {
-                            let opt = f.get_options();
-                            let unknown_fields = opt.get_unknown_fields();
-                            for (field_number, values) in unknown_fields {
-                                if let Some((name, t, v)) = parse_extension(extension_info, field_number, values) {
-                                    eprintln!("*option*: {} {} = {}", t, name, v);
-                                }
+                }
+                println!("***field info***");
+                for f in m.get_field() {
+                    println!("field info:\n{:#?}", f);
+                    if f.has_options() {
+                        let opt = f.get_options();
+                        let unknown_fields = opt.get_unknown_fields();
+                        for (field_number, values) in unknown_fields {
+                            if let Some((name, t, v)) = parse_extension(&extension_info, field_number, values) {
+                                println!("*option*: {} {} = {}", t, name, v);
                             }
                         }
                     }
                 }
             }
         }
-
-        let results: Vec<compiler_plugin::GenResult> = Vec::new();
-        results
-    });
+    }
 }
