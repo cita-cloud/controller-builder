@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package builder;
+
+import "google/protobuf/descriptor.proto";
+
+extend google.protobuf.MessageOptions {
+  optional uint32 my_option = 51234;
+}
+
+extend google.protobuf.FieldOptions {
+    uint32 field_length = 50000;  // exactly length of the field
+    uint32 field_max_length = 50001; // max length of the field, less or equal is ok.
+    string field_length_func = 50002; // length of the field is variable, get it from a function.
+    string field_value_func = 50003; // check value with a function.
+}

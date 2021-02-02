@@ -1,0 +1,65 @@
+syntax = "proto3";
+
+package blockchain;
+
+import "builder.proto";
+
+message BlockHeader {
+    // hash of previous BlockHeader
+    bytes prevhash = 1 [(builder.field_length_func) = "kms_hash_length"];
+    uint64 timestamp = 2 [(builder.field_value_func) = "check_timestamp"];
+    uint64 height = 3;
+    bytes transactions_root = 4 [(builder.field_length_func) = "kms_hash_length"];
+    bytes proposer = 5 [(builder.field_length_func) = "kms_address_length", (builder.field_value_func) = "check_proposer"];
+}
+
+message Transaction {
+    uint32 version = 1 [(builder.field_value_func) = "check_version"];
+    bytes to = 2 [(builder.field_length_func) = "kms_address_length"];
+    string nonce = 3 [(builder.field_max_length) = 128];
+    uint64 quota = 4;
+    uint64 valid_until_block = 5 [(builder.field_value_func) = "check_valid_until_block"];
+    bytes data = 6;
+    // length is 32 bytes.
+    bytes value = 7 [(builder.field_length) = 32];
+    // length is 32 bytes.
+    bytes chain_id = 8 [(builder.field_length) = 32, (builder.field_value_func) = "check_chain_id"];
+}
+
+message Witness {
+    bytes signature = 1 [(builder.field_length_func) = "kms_signature_length"];
+    // add to support multi-address, or we don't know which address algorithm to use
+    bytes sender = 2 [(builder.field_length_func) = "kms_address_length"];
+}
+
+message UnverifiedTransaction {
+    Transaction transaction = 1;
+    // add to support multi-hash, or we don't know which hash algorithm to use
+    bytes transaction_hash = 2 [(builder.field_length_func) = "kms_hash_length"];
+    Witness witness = 3;
+}
+
+message UtxoTransaction {
+    uint32 version = 1 [(builder.field_value_func) = "check_valid_until_block"];
+    bytes pre_tx_hash = 2 [(builder.field_length_func) = "kms_hash_length", (builder.field_value_func) = "check_pre_tx_hash"];
+    bytes output = 3;
+    uint64 lock_id = 4 [(builder.field_value_func) = "check_lock_id"];
+}
+
+message UnverifiedUtxoTransaction {
+    UtxoTransaction transaction = 1;
+    // add to support multi-hash, or we don't know which hash algorithm to use
+    bytes transaction_hash = 2 [(builder.field_length_func) = "kms_hash_length"];
+    repeated Witness witnesses = 3;
+}
+
+message CompactBlockBody {
+    // transaction hash of UnverifiedTransaction or UnverifyedUtxoTransaction.
+    repeated bytes tx_hashes = 1 [(builder.field_length_func) = "kms_hash_length"];
+}
+
+message CompactBlock {
+    uint32 version = 1 [(builder.field_value_func) = "check_version"];
+    BlockHeader header = 2;
+    CompactBlockBody body = 3;
+}
