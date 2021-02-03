@@ -1,3 +1,5 @@
+//mod prost_warpper;
+
 use protobuf::{Message, UnknownValues};
 use protobuf::descriptor::{FieldDescriptorProto, FieldDescriptorProto_Type, FileDescriptorSet};
 use protobuf::types::{ProtobufTypeDouble, ProtobufType, ProtobufTypeFloat, ProtobufTypeInt64, ProtobufTypeUint64, ProtobufTypeInt32, ProtobufTypeFixed64, ProtobufTypeFixed32, ProtobufTypeBool, ProtobufTypeString, ProtobufTypeBytes, ProtobufTypeUint32, ProtobufTypeSfixed32, ProtobufTypeSfixed64, ProtobufTypeSint32, ProtobufTypeSint64};
@@ -141,10 +143,10 @@ fn main() {
     let mut extension_info = Vec::new();
 
     for d in file_descriptor_proto_array {
-        if d.get_name() == "builder.proto" {
+        if d.get_name() == "ext.proto" {
             // print extension info
-            let builder_extension_info = d.get_extension();
-            extension_info.append(&mut builder_extension_info.to_owned());
+            let ext_extension_info = d.get_extension();
+            extension_info.append(&mut ext_extension_info.to_owned());
             println!("*****ext info*****");
             println!("ext info:\n{:#?}", extension_info);
         }

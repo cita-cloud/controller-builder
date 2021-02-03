@@ -2,59 +2,59 @@ syntax = "proto3";
 
 package blockchain;
 
-import "builder.proto";
+import "ext.proto";
 
 message BlockHeader {
     // hash of previous BlockHeader
-    bytes prevhash = 1 [(builder.field_length_func) = "kms_hash_length"];
-    uint64 timestamp = 2 [(builder.field_value_func) = "check_timestamp"];
+    bytes prevhash = 1 [(ext.field_length_func) = "kms_hash_length"];
+    uint64 timestamp = 2 [(ext.field_value_func) = "check_timestamp"];
     uint64 height = 3;
-    bytes transactions_root = 4 [(builder.field_length_func) = "kms_hash_length"];
-    bytes proposer = 5 [(builder.field_length_func) = "kms_address_length", (builder.field_value_func) = "check_proposer"];
+    bytes transactions_root = 4 [(ext.field_length_func) = "kms_hash_length"];
+    bytes proposer = 5 [(ext.field_length_func) = "kms_address_length", (ext.field_value_func) = "check_proposer"];
 }
 
 message Transaction {
-    uint32 version = 1 [(builder.field_value_func) = "check_version"];
-    bytes to = 2 [(builder.field_length_func) = "kms_address_length"];
-    string nonce = 3 [(builder.field_max_length) = 128];
+    uint32 version = 1 [(ext.field_value_func) = "check_version"];
+    bytes to = 2 [(ext.field_length_func) = "kms_address_length"];
+    string nonce = 3 [(ext.field_max_length) = 128];
     uint64 quota = 4;
-    uint64 valid_until_block = 5 [(builder.field_value_func) = "check_valid_until_block"];
+    uint64 valid_until_block = 5 [(ext.field_value_func) = "check_valid_until_block"];
     bytes data = 6;
-    bytes value = 7 [(builder.field_length) = 32];
-    bytes chain_id = 8 [(builder.field_length) = 32, (builder.field_value_func) = "check_chain_id"];
+    bytes value = 7 [(ext.field_length) = 32];
+    bytes chain_id = 8 [(ext.field_length) = 32, (ext.field_value_func) = "check_chain_id"];
 }
 
 message Witness {
-    bytes signature = 1 [(builder.field_length_func) = "kms_signature_length"];
-    bytes sender = 2 [(builder.field_length_func) = "kms_address_length"];
+    bytes signature = 1 [(ext.field_length_func) = "kms_signature_length"];
+    bytes sender = 2 [(ext.field_length_func) = "kms_address_length"];
 }
 
 message UnverifiedTransaction {
     Transaction transaction = 1;
-    bytes transaction_hash = 2 [(builder.field_length_func) = "kms_hash_length"];
+    bytes transaction_hash = 2 [(ext.field_length_func) = "kms_hash_length"];
     Witness witness = 3;
 }
 
 message UtxoTransaction {
-    uint32 version = 1 [(builder.field_value_func) = "check_valid_until_block"];
-    bytes pre_tx_hash = 2 [(builder.field_length_func) = "kms_hash_length", (builder.field_value_func) = "check_pre_tx_hash"];
+    uint32 version = 1 [(ext.field_value_func) = "check_valid_until_block"];
+    bytes pre_tx_hash = 2 [(ext.field_length_func) = "kms_hash_length", (ext.field_value_func) = "check_pre_tx_hash"];
     bytes output = 3;
-    uint64 lock_id = 4 [(builder.field_value_func) = "check_lock_id"];
+    uint64 lock_id = 4 [(ext.field_value_func) = "check_lock_id"];
 }
 
 message UnverifiedUtxoTransaction {
     UtxoTransaction transaction = 1;
-    bytes transaction_hash = 2 [(builder.field_length_func) = "kms_hash_length"];
+    bytes transaction_hash = 2 [(ext.field_length_func) = "kms_hash_length"];
     repeated Witness witnesses = 3;
 }
 
 message CompactBlockBody {
     // transaction hash of UnverifiedTransaction or UnverifyedUtxoTransaction.
-    repeated bytes tx_hashes = 1 [(builder.field_length_func) = "kms_hash_length"];
+    repeated bytes tx_hashes = 1 [(ext.field_length_func) = "kms_hash_length"];
 }
 
 message CompactBlock {
-    uint32 version = 1 [(builder.field_value_func) = "check_version"];
+    uint32 version = 1 [(ext.field_value_func) = "check_version"];
     BlockHeader header = 2;
     CompactBlockBody body = 3;
 }
