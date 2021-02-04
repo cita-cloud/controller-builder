@@ -9,6 +9,7 @@ edition = "2018"
 [dependencies]
 protobuf = "2.20.0"
 quote = "1.0.8"
+proc-macro2 = { version = "1.0.24", default-features = false }
 
 [build-dependencies]
 tonic-build = "0.4.0"

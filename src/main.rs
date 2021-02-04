@@ -4,6 +4,9 @@ use protobuf::{Message, UnknownValues};
 use protobuf::descriptor::{FieldDescriptorProto, FieldDescriptorProto_Type, FileDescriptorSet};
 use protobuf::types::{ProtobufTypeDouble, ProtobufType, ProtobufTypeFloat, ProtobufTypeInt64, ProtobufTypeUint64, ProtobufTypeInt32, ProtobufTypeFixed64, ProtobufTypeFixed32, ProtobufTypeBool, ProtobufTypeString, ProtobufTypeBytes, ProtobufTypeUint32, ProtobufTypeSfixed32, ProtobufTypeSfixed64, ProtobufTypeSint32, ProtobufTypeSint64};
 use std::fs;
+use proc_macro2::{Ident, Span, TokenStream, Literal};
+use quote::{format_ident, quote, quote_spanned, TokenStreamExt};
+use std::process::Command;
 
 fn parse_extension(extension_info: &[FieldDescriptorProto], field_number: u32, unknown_values: &UnknownValues) -> Option<(String, String, String)> {
     for ext in extension_info {
@@ -131,8 +134,49 @@ fn parse_extension(extension_info: &[FieldDescriptorProto], field_number: u32, u
     None
 }
 
+fn gen_tokens(field_name: &str, ext_name: &str, v: &str) -> TokenStream {
+    let field_name_token = format_ident!("{}", field_name);
+    match ext_name {
+        "field_length" => {
+            let field_length = Literal::usize_unsuffixed(v.parse::<usize>().unwrap());
+            quote! {
+                if self.#field_name_token.len() != #field_length {
+                    return false;
+                }
+            }
+        }
+        "field_max_length" => {
+            let field_max_length = Literal::usize_unsuffixed(v.parse::<usize>().unwrap());
+            quote! {
+                if self.#field_name_token.len() > #field_max_length {
+                    return false;
+                }
+            }
+        }
+        "field_length_func" => {
+            let field_length_func = format_ident!("{}", v);
+            quote! {
+                if self.#field_name_token.len() == #field_length_func() {
+                    return false;
+                }
+            }
+        }
+        "field_value_func" => {
+            let field_value_func = format_ident!("{}", v);
+            quote! {
+                if !#field_value_func(self.#field_name_token) {
+                    return false;
+                }
+            }
+        }
+        _ => {
+            panic!("unexpected ext_name");
+        }
+    }
+}
 
 fn main() {
+    let mut rust_code = include_str!("../controller/blockchain.rs").to_string();
     let mut args = std::env::args();
     let descriptor_file = args.nth(1).expect("Need one argument: descriptor file name!");
     println!("descriptor_file: {}", descriptor_file);
@@ -160,6 +204,7 @@ fn main() {
             println!("*****message info*****");
             for m in d.get_message_type() {
                 println!("message: {}", m.get_name());
+                let struct_name = format_ident!("{}", m.get_name());
                 if m.has_options() {
                     let opt = m.get_options();
                     let unknown_fields = opt.get_unknown_fields();
@@ -169,6 +214,7 @@ fn main() {
                         }
                     }
                 }
+                let mut tokens = quote!();
                 println!("***field info***");
                 for f in m.get_field() {
                     println!("field info:\n{:#?}", f);
@@ -178,11 +224,36 @@ fn main() {
                         for (field_number, values) in unknown_fields {
                             if let Some((name, t, v)) = parse_extension(&extension_info, field_number, values) {
                                 println!("*option*: {} {} = {}", t, name, v);
+                                let this_tokens = gen_tokens(f.get_name(), &name, &v);
+                                tokens = quote!{
+                                    #tokens
+                                    #this_tokens
+                                };
                             }
                         }
                     }
                 }
+                let verfiy_func_expr = format_ident!("verify_{}", m.get_name());
+                let struct_impl = quote! {
+                    impl #struct_name {
+                        fn #verfiy_func_expr(&self) -> bool {
+                            #tokens
+                            true
+                        }
+                    }
+                };
+                println!("struct_impl: {}", struct_impl.to_string());
+                rust_code.push_str(&struct_impl.to_string());
             }
         }
     }
+    let generated_file = "controller/controller.rs";
+    fs::write(generated_file, rust_code).unwrap();
+    Command::new("rustfmt")
+        .arg("--emit")
+        .arg("files")
+        .arg("--edition")
+        .arg("2018")
+        .arg(generated_file)
+        .output().unwrap();
 }
